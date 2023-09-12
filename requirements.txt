@@ -5,3 +5,4 @@ langchain
 clarifai
 yt_dlp
 pydub
+ffmpeg
