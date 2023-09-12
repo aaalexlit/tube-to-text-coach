@@ -3,14 +3,9 @@ import os
 import shutil
 
 import assemblyai as aai
-import langchain
 import requests
 import streamlit as st
-from gptcache import Cache
-from gptcache.manager.factory import manager_factory
-from gptcache.processor.pre import get_prompt
 from langchain import PromptTemplate, LLMChain
-from langchain.cache import GPTCache
 from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLoader
 from langchain.document_loaders.generic import GenericLoader
 from langchain.document_loaders.parsers import OpenAIWhisperParser
@@ -48,14 +43,6 @@ def get_hashed_name(name):
     return hashlib.sha256(name.encode()).hexdigest()
 
 
-def init_gptcache(cache_obj: Cache, llm: str):
-    hashed_llm = get_hashed_name(llm)
-    cache_obj.init(
-        pre_embedding_func=get_prompt,
-        data_manager=manager_factory(manager="map", data_dir=f"map_cache_{hashed_llm}"),
-    )
-
-
 def log_to_langsmith():
     os.environ['LANGCHAIN_API_KEY'] = st.secrets['LANGCHAIN_API_KEY']
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -74,8 +61,6 @@ def load_audio():
 
 
 log_to_langsmith()
-gpt_cache = GPTCache(init_gptcache)
-langchain.llm_cache = gpt_cache
 
 template = """The following text delimited by three backticks is a text of a follow along "{vid_name}" 
 Please split it into exercises.
