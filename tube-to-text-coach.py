@@ -92,7 +92,6 @@ def generate_routine(vid_name, vid_text):
         user_id=CLF_OPENAI_USER_ID,
         app_id=CLF_CHAT_COMPLETION_APP_ID,
         model_id=CLF_GPT4_MODEL_ID,
-        cache=True
     )
     # Create LLM chain
     llm_chain = LLMChain(prompt=prompt, llm=clarifai_llm)
