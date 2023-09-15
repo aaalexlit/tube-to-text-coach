@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 import shutil
 
 import assemblyai as aai
@@ -34,6 +35,12 @@ def check_video_url():
     response = requests.get(checker_url)
 
     return response.status_code == 200
+
+
+def extract_youtube_video_id():
+    # Regular expression to match YouTube video IDs
+    pattern = r"((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
+    return match.group() if (match := re.search(pattern, youtube_link)) else None
 
 
 def get_video_name():
@@ -107,7 +114,7 @@ def generate_routine(vid_name, vid_text):
 
 
 @st.cache_data(show_spinner="Transcribing the video")
-def transcribe_with_assembly(youtube_link):
+def transcribe_with_assembly(youtube_video_id):
     load_audio()
     transcriber = aai.Transcriber()
     transcript = transcriber.transcribe(f'{st.session_state.save_dir}/{os.listdir(st.session_state.save_dir)[0]}')
@@ -115,9 +122,9 @@ def transcribe_with_assembly(youtube_link):
 
 
 @st.cache_data(show_spinner="Transcribing the video")
-def transcribe_with_whisper(youtube_link):
+def transcribe_with_whisper(youtube_video_id):
     loader = GenericLoader(
-        YoutubeAudioLoader([youtube_link], st.session_state.save_dir),
+        YoutubeAudioLoader([youtube_video_id], st.session_state.save_dir),
         OpenAIWhisperParser()
     )
     docs = loader.load()
@@ -158,8 +165,9 @@ with st.container():
             vid_name = get_video_name()
             st.session_state.save_dir = f'vids/{get_hashed_name(vid_name)}'
             try:
-                vid_text = transcribe_with_assembly(youtube_link)
-                # vid_text = transcribe_with_whisper(youtube_link)
+                youtube_video_id = extract_youtube_video_id()
+                vid_text = transcribe_with_assembly(youtube_video_id)
+                # vid_text = transcribe_with_whisper(youtube_video_id)
                 with st.expander('Text extracted from the video'):
                     st.write(vid_text)
                 generated_routine = generate_routine(vid_name, vid_text)
