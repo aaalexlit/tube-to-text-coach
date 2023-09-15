@@ -120,34 +120,49 @@ def transcribe_with_whisper(youtube_link):
     return docs[0].page_content
 
 
-with st.container():
+st.set_page_config(
+    page_title="Tube-to-Text Coach",
+    page_icon=":muscle:",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+with st.sidebar:
     with open('app_description.md') as descr:
         st.write(descr.read())
 
-    youtube_link = st.text_input("Enter you follow-along video youtube link:",
-                                 value='https://www.youtube.com/watch?v=IB-g_BONpbI')
+with st.container():
+    left_col, right_col = st.columns(spec=[0.4, 0.6], gap='large')
 
-    if youtube_link and check_video_url():
-        st.video(youtube_link)
+    with left_col:
+        youtube_link = st.text_input(value='https://www.youtube.com/watch?v=IB-g_BONpbI',
+                                     label='Enter you follow-along video youtube link',
+                                     help='Enter you follow-along video youtube link')
 
-    if not check_video_url():
-        st.warning('Please input a valid Youtube video link')
-        st.stop()
+        if youtube_link and check_video_url():
+            st.video(youtube_link)
 
-    if st.button("Generate my routine"):
-        vid_name = get_video_name()
-        st.session_state.save_dir = f'vids/{get_hashed_name(vid_name)}'
-        try:
-            vid_text = transcribe_with_assembly(youtube_link)
-            # vid_text = transcribe_with_whisper(youtube_link)
-            with st.expander('Text extracted from the video'):
-                st.write(vid_text)
-            generated_routine = generate_routine(vid_name, vid_text)
+        if not check_video_url():
+            st.warning('Please input a valid Youtube video link')
+            st.stop()
 
-            if st.download_button('Download in md format', generated_routine, file_name=f'{vid_name}.md'):
-                st.write(f'Downloaded the routine into {vid_name}.md')
-        except Exception as e:
-            st.error(e)
-        finally:
-            if 'save_dir' in st.session_state:
-                remove_local_dir(st.session_state.save_dir)
+        generate_button = st.button("Generate my routine")
+
+    with right_col:
+        if generate_button:
+            vid_name = get_video_name()
+            st.session_state.save_dir = f'vids/{get_hashed_name(vid_name)}'
+            try:
+                vid_text = transcribe_with_assembly(youtube_link)
+                # vid_text = transcribe_with_whisper(youtube_link)
+                with st.expander('Text extracted from the video'):
+                    st.write(vid_text)
+                generated_routine = generate_routine(vid_name, vid_text)
+
+                if st.download_button('Download in md format', generated_routine, file_name=f'{vid_name}.md'):
+                    st.write(f'Downloaded the routine into {vid_name}.md')
+            except Exception as e:
+                st.error(e)
+            finally:
+                if 'save_dir' in st.session_state:
+                    remove_local_dir(st.session_state.save_dir)
