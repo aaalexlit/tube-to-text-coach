@@ -2,6 +2,8 @@ import hashlib
 import os
 import re
 import shutil
+import tempfile
+from pathlib import Path
 
 import assemblyai as aai
 import langchain
@@ -13,6 +15,7 @@ from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLo
 from langchain.document_loaders.generic import GenericLoader
 from langchain.document_loaders.parsers import OpenAIWhisperParser
 from langchain.llms import Clarifai
+from md2pdf.core import md2pdf
 
 PROJECT_NAME = 'tube-to-text-coach'
 
@@ -97,7 +100,7 @@ If the text doesn't contain a follow-along routine that's possible to split into
 prompt = PromptTemplate(template=template, input_variables=["vid_name", "vid_text"])
 
 
-def generate_routine(vid_name, vid_text):
+def generate_routine():
     # Initialize a Clarifai LLM
     clarifai_llm = Clarifai(
         pat=CLARIFAI_PAT,
@@ -170,10 +173,16 @@ with st.container():
                 # vid_text = transcribe_with_whisper(youtube_video_id)
                 with st.expander('Text extracted from the video'):
                     st.write(vid_text)
-                generated_routine = generate_routine(vid_name, vid_text)
+                generated_routine = generate_routine()
 
-                if st.download_button('Download in md format', generated_routine, file_name=f'{vid_name}.md'):
-                    st.write(f'Downloaded the routine into {vid_name}.md')
+                exported_pdf = tempfile.NamedTemporaryFile()
+                md2pdf(pdf_file_path=exported_pdf.name,
+                       md_content=generated_routine)
+
+                with open(Path(exported_pdf.name), 'rb') as pdf_file:
+                    download_pdf_button = left_col.download_button('Export to PDF', pdf_file, file_name=f'{vid_name}.pdf')
+                if download_pdf_button:
+                    left_col.write(f'Downloaded {vid_name}.pdf')
             except Exception as e:
                 st.error(e)
             finally:
