@@ -137,7 +137,7 @@ with st.container():
     with left_col:
         youtube_link = st.text_input(value='https://www.youtube.com/watch?v=IB-g_BONpbI',
                                      label='Enter you follow-along video youtube link',
-                                     help='Enter you follow-along video youtube link')
+                                     help='Any valid YT URL should work')
 
         if youtube_link and check_video_url():
             st.video(youtube_link)
