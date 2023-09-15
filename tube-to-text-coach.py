@@ -3,9 +3,11 @@ import os
 import shutil
 
 import assemblyai as aai
+import langchain
 import requests
 import streamlit as st
 from langchain import PromptTemplate, LLMChain
+from langchain.cache import SQLiteCache
 from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLoader
 from langchain.document_loaders.generic import GenericLoader
 from langchain.document_loaders.parsers import OpenAIWhisperParser
@@ -21,6 +23,9 @@ CLF_GPT35_MODEL_ID = 'GPT-3_5-turbo'
 CLARIFAI_PAT = st.secrets['CLARIFAI_PAT']
 
 aai.settings.api_key = st.secrets['ASSEMBLYAI_API_KEY']
+
+cache_name = 'tube-to-text-cache'
+langchain.llm_cache = SQLiteCache(database_path=".langchain.db")
 
 
 def check_video_url():
