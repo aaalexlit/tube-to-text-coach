@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 from pathlib import Path
 
 import assemblyai as aai
@@ -112,7 +113,16 @@ def generate_routine():
     llm_chain = LLMChain(prompt=prompt, llm=clarifai_llm)
     with st.spinner('Generating routine'):
         result = llm_chain.run(vid_name=vid_name, vid_text=vid_text)
-        st.write(result)
+        # Simulate stream of response with milliseconds delay
+        message_placeholder = st.empty()
+        full_response = ''
+        for chunk in result.splitlines():
+            full_response += f"{chunk}\n"
+            time.sleep(0.1)
+            # Add a blinking cursor to simulate typing
+            message_placeholder.markdown(f"{full_response}▌")
+        message_placeholder.markdown(full_response)
+        # st.write(result)
         return result
 
 
