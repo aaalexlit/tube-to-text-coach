@@ -146,7 +146,7 @@ with st.container():
 
     with left_col:
         with st.form('options'):
-            youtube_link = st.text_input(value='https://www.youtube.com/watch?v=IB-g_BONpbI',
+            youtube_link = st.text_input(value='https://www.youtube.com/watch?v=1a7URy4pLfw',
                                          label='Enter you follow-along video youtube link',
                                          help='Any valid YT URL should work')
 
