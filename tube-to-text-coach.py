@@ -80,6 +80,7 @@ def load_audio():
 log_to_langsmith()
 
 routine_extractor_prompt = hub.pull("aaalexlit/sport-routine-to-program")
+routine_extractor_prompt_short = hub.pull("aaalexlit/sport-routine-to-program-short")
 
 
 def generate_routine():
@@ -91,7 +92,11 @@ def generate_routine():
         model_id=CLF_GPT4_MODEL_ID,
     )
     # Create LLM chain
-    llm_chain = LLMChain(prompt=routine_extractor_prompt, llm=clarifai_llm)
+    if st.session_state.short_version:
+        prompt = routine_extractor_prompt_short
+    else:
+        prompt = routine_extractor_prompt
+    llm_chain = LLMChain(prompt=prompt, llm=clarifai_llm)
     with st.spinner('Generating routine'):
         result = llm_chain.run(vid_name=vid_name, vid_text=vid_text)
         # Simulate stream of response with milliseconds delay
@@ -140,18 +145,25 @@ with st.container():
     left_col, right_col = st.columns(spec=[0.4, 0.6], gap='large')
 
     with left_col:
-        youtube_link = st.text_input(value='https://www.youtube.com/watch?v=IB-g_BONpbI',
-                                     label='Enter you follow-along video youtube link',
-                                     help='Any valid YT URL should work')
+        with st.form('options'):
+            youtube_link = st.text_input(value='https://www.youtube.com/watch?v=IB-g_BONpbI',
+                                         label='Enter you follow-along video youtube link',
+                                         help='Any valid YT URL should work')
 
-        if youtube_link and check_video_url():
-            st.video(youtube_link)
+            if check_video_url():
+                st.video(youtube_link)
 
-        if not check_video_url():
-            st.warning('Please input a valid Youtube video link')
-            st.stop()
+            if not check_video_url():
+                st.warning('Please input a valid Youtube video link')
+                st.stop()
 
-        generate_button = st.button("Generate my routine")
+            show_extracted_text = st.checkbox('Show video transcript', value=False)
+            short_version = st.checkbox('Short version',
+                                        help="Just list the exercises without any description",
+                                        key='short_version',
+                                        value=False)
+
+            generate_button = st.form_submit_button("Generate my routine")
 
     with right_col:
         if generate_button:
@@ -161,8 +173,10 @@ with st.container():
                 youtube_video_id = extract_youtube_video_id()
                 vid_text = transcribe_with_assembly(youtube_video_id)
                 # vid_text = transcribe_with_whisper(youtube_video_id)
-                # with st.expander('Text extracted from the video'):
-                #     st.write(vid_text)
+                if show_extracted_text:
+                    with st.expander('Video transcript'):
+                        st.write(vid_text)
+
                 generated_routine = generate_routine()
 
                 exported_pdf = tempfile.NamedTemporaryFile()
