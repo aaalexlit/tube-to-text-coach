@@ -10,7 +10,8 @@ import assemblyai as aai
 import langchain
 import requests
 import streamlit as st
-from langchain import PromptTemplate, LLMChain
+from langchain import LLMChain
+from langchain import hub
 from langchain.cache import SQLiteCache
 from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLoader
 from langchain.document_loaders.generic import GenericLoader
@@ -78,27 +79,7 @@ def load_audio():
 
 log_to_langsmith()
 
-template = """The following text delimited by three backticks is a text of a follow along "{vid_name}" 
-Please split it into exercises.
-Start with the name of the routine. If the name contains "follow along" words, remove it.
-Then add a summary section that describes what is the routine about and who is it good for. It shouldn't be longer than a couple of sentences.
-Then add a section about the equipment needed to follow the routine.
-Put the number of repetitions or the time after the exercise name, don't add it to the exercise description.
-If the exercise is on the right side and on the left side don't repeat it twice in the list, just put "on each side" after the number of repetitions or time.
-For example
-```
-### Prone Pec Twist (5 repetitions on each side):  
-
-- Begin with the right arm at 90 degrees to the side.
-- Twist away, letting the foot come around for thoracic rotation.
-- Repeat on the left side
-```
-
-the result should be in markdown format
-If the text doesn't contain a follow-along routine that's possible to split into exercises say so
-```{vid_text}```"""
-
-prompt = PromptTemplate(template=template, input_variables=["vid_name", "vid_text"])
+routine_extractor_prompt = hub.pull("aaalexlit/sport-routine-to-program")
 
 
 def generate_routine():
@@ -110,7 +91,7 @@ def generate_routine():
         model_id=CLF_GPT4_MODEL_ID,
     )
     # Create LLM chain
-    llm_chain = LLMChain(prompt=prompt, llm=clarifai_llm)
+    llm_chain = LLMChain(prompt=routine_extractor_prompt, llm=clarifai_llm)
     with st.spinner('Generating routine'):
         result = llm_chain.run(vid_name=vid_name, vid_text=vid_text)
         # Simulate stream of response with milliseconds delay
@@ -122,7 +103,6 @@ def generate_routine():
             # Add a blinking cursor to simulate typing
             message_placeholder.markdown(f"{full_response}▌")
         message_placeholder.markdown(full_response)
-        # st.write(result)
         return result
 
 
@@ -181,8 +161,8 @@ with st.container():
                 youtube_video_id = extract_youtube_video_id()
                 vid_text = transcribe_with_assembly(youtube_video_id)
                 # vid_text = transcribe_with_whisper(youtube_video_id)
-                with st.expander('Text extracted from the video'):
-                    st.write(vid_text)
+                # with st.expander('Text extracted from the video'):
+                #     st.write(vid_text)
                 generated_routine = generate_routine()
 
                 exported_pdf = tempfile.NamedTemporaryFile()
@@ -190,7 +170,8 @@ with st.container():
                        md_content=generated_routine)
 
                 with open(Path(exported_pdf.name), 'rb') as pdf_file:
-                    download_pdf_button = left_col.download_button('Export to PDF', pdf_file, file_name=f'{vid_name}.pdf')
+                    download_pdf_button = left_col.download_button('Export to PDF', pdf_file,
+                                                                   file_name=f'{vid_name}.pdf')
                 if download_pdf_button:
                     left_col.write(f'Downloaded {vid_name}.pdf')
             except Exception as e:

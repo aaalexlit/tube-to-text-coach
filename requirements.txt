@@ -6,3 +6,4 @@ clarifai
 yt_dlp
 pydub
 md2pdf
+langchainhub
