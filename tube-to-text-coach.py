@@ -99,16 +99,20 @@ def generate_routine():
     llm_chain = LLMChain(prompt=prompt, llm=clarifai_llm)
     with st.spinner('Generating routine'):
         result = llm_chain.run(vid_name=vid_name, vid_text=vid_text)
-        # Simulate stream of response with milliseconds delay
-        message_placeholder = st.empty()
-        full_response = ''
-        for chunk in result.splitlines():
-            full_response += f"{chunk}\n"
-            time.sleep(0.1)
-            # Add a blinking cursor to simulate typing
-            message_placeholder.markdown(f"{full_response}▌")
-        message_placeholder.markdown(full_response)
+        simulate_steam_response(result)
         return result
+
+
+def simulate_steam_response(result):
+    # Simulate stream of response with milliseconds delay
+    message_placeholder = st.empty()
+    full_response = ''
+    for chunk in result.splitlines():
+        full_response += f"{chunk}\n"
+        time.sleep(0.1)
+        # Add a blinking cursor to simulate typing
+        message_placeholder.markdown(f"{full_response}▌")
+    message_placeholder.markdown(full_response)
 
 
 @st.cache_data(show_spinner="Transcribing the video")
