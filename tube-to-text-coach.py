@@ -153,10 +153,6 @@ with st.container():
             if check_video_url():
                 st.video(youtube_link)
 
-            if not check_video_url():
-                st.warning('Please input a valid Youtube video link')
-                st.stop()
-
             show_extracted_text = st.checkbox('Show video transcript', value=False)
             short_version = st.checkbox('Short version',
                                         help="Just list the exercises without any description",
@@ -164,6 +160,10 @@ with st.container():
                                         value=False)
 
             generate_button = st.form_submit_button("Generate my routine")
+
+            if not check_video_url():
+                st.warning('Please input a valid Youtube video link')
+                st.stop()
 
     with right_col:
         if generate_button:
