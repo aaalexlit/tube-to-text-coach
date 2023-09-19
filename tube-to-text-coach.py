@@ -36,9 +36,7 @@ langchain.llm_cache = SQLiteCache(database_path=".langchain.db")
 
 def check_video_url():
     checker_url = f"https://www.youtube.com/oembed?url={youtube_link}"
-
     response = requests.get(checker_url)
-
     return response.status_code == 200
 
 
@@ -50,9 +48,7 @@ def extract_youtube_video_id():
 
 def get_video_name():
     checker_url = f"https://www.youtube.com/oembed?url={youtube_link}"
-
     response = requests.get(checker_url)
-
     return response.json()['title']
 
 
@@ -144,6 +140,8 @@ st.set_page_config(
 with st.sidebar:
     with open('app_description.md') as descr:
         st.write(descr.read())
+        st.subheader('**Demo**')
+        st.video('https://www.youtube.com/watch?v=rj76EDbaOX4')
 
 with st.container():
     left_col, right_col = st.columns(spec=[0.4, 0.6], gap='large')
