@@ -140,8 +140,8 @@ st.set_page_config(
 with st.sidebar:
     with open('app_description.md') as descr:
         st.write(descr.read())
-        st.subheader('**Demo**')
-        st.video('https://www.youtube.com/watch?v=rj76EDbaOX4')
+    st.subheader('**Demo**')
+    st.video('https://www.youtube.com/watch?v=rj76EDbaOX4')
 
 with st.container():
     left_col, right_col = st.columns(spec=[0.4, 0.6], gap='large')
