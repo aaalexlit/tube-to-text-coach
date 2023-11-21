@@ -104,7 +104,7 @@ def remove_openapi_key():
 def transcribe_with_whisper(youtube_video_id):
     loader = GenericLoader(
         YoutubeAudioLoader([youtube_video_id], st.session_state.save_dir),
-        OpenAIWhisperParser()
+        OpenAIWhisperParser(api_key=st.session_state.openai_api_key)
     )
     docs = loader.load()
     return docs[0].page_content
@@ -228,6 +228,7 @@ with st.container():
                 finally:
                     if 'save_dir' in st.session_state:
                         remove_local_dir(st.session_state.save_dir)
-            with st.spinner('Generating routine'):
-                simulate_steam_response(generated_routine)
-            export_to_pdf()
+            if generated_routine:
+                with st.spinner('Generating routine'):
+                    simulate_steam_response(generated_routine)
+                export_to_pdf()
