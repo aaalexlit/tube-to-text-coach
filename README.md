@@ -6,6 +6,8 @@ available on the [LangChain Hub](https://docs.smith.langchain.com/category/hub):
 2. [Long routine prompt](https://smith.langchain.com/hub/aaalexlit/sport-routine-to-program)
 
 # Local development
+
+## Requirements
 for yt dl to work locally you need to have `ffmpeg` installed
 
 on mac
@@ -21,4 +23,10 @@ sudo apt-get install ffmpeg
 on Windows
 ```shell
 choco install ffmpeg
+```
+
+## Launch the app
+
+```shell
+ streamlit run tube-to-text-coach.py     
 ```

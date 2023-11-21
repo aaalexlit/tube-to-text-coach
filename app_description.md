@@ -8,5 +8,5 @@ With Tube-to-Text Coach, your fitness journey is about to get a
 whole lot more organized and convenient. :sweat_smile:
 
 :video_camera:
-Enter your favorite youtube video routine and get a a beautifully formatted, 
+Enter your favorite YouTube follow-along video and get a beautifully formatted, 
 step-by-step exercise routine that you can print and take to go  :printer:

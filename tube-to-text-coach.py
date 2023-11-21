@@ -6,31 +6,20 @@ import tempfile
 import time
 from pathlib import Path
 
-import assemblyai as aai
 import langchain
 import requests
 import streamlit as st
-from langchain import LLMChain
 from langchain import hub
 from langchain.cache import SQLiteCache
+from langchain.chains import LLMChain
+from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLoader
 from langchain.document_loaders.generic import GenericLoader
 from langchain.document_loaders.parsers import OpenAIWhisperParser
-from langchain.llms import Clarifai
 from md2pdf.core import md2pdf
 
 PROJECT_NAME = 'tube-to-text-coach'
 
-CLF_OPENAI_USER_ID = 'openai'
-CLF_CHAT_COMPLETION_APP_ID = 'chat-completion'
-CLF_GPT4_MODEL_ID = 'GPT-4'
-CLF_GPT35_MODEL_ID = 'GPT-3_5-turbo'
-
-CLARIFAI_PAT = st.secrets['CLARIFAI_PAT']
-
-aai.settings.api_key = st.secrets['ASSEMBLYAI_API_KEY']
-
-cache_name = 'tube-to-text-cache'
 langchain.llm_cache = SQLiteCache(database_path=".langchain.db")
 
 
@@ -80,23 +69,18 @@ routine_extractor_prompt_short = hub.pull("aaalexlit/sport-routine-to-program-sh
 
 
 def generate_routine():
-    # Initialize a Clarifai LLM
-    clarifai_llm = Clarifai(
-        pat=CLARIFAI_PAT,
-        user_id=CLF_OPENAI_USER_ID,
-        app_id=CLF_CHAT_COMPLETION_APP_ID,
-        model_id=CLF_GPT4_MODEL_ID,
-    )
+    # Initialize the LLM
+    llm = ChatOpenAI(model='gpt-4-1106-preview',
+                     temperature=0.4,
+                     openai_api_key=st.session_state.openai_api_key)
     # Create LLM chain
     if st.session_state.short_version:
         prompt = routine_extractor_prompt_short
     else:
         prompt = routine_extractor_prompt
-    llm_chain = LLMChain(prompt=prompt, llm=clarifai_llm)
-    with st.spinner('Generating routine'):
-        result = llm_chain.run(vid_name=vid_name, vid_text=vid_text)
-        simulate_steam_response(result)
-        return result
+    llm_chain = LLMChain(prompt=prompt, llm=llm)
+
+    return llm_chain.run(vid_name=vid_name, vid_text=vid_text)
 
 
 def simulate_steam_response(result):
@@ -111,12 +95,9 @@ def simulate_steam_response(result):
     message_placeholder.markdown(full_response)
 
 
-@st.cache_data(show_spinner="Transcribing the video")
-def transcribe_with_assembly(youtube_video_id):
-    load_audio()
-    transcriber = aai.Transcriber()
-    transcript = transcriber.transcribe(f'{st.session_state.save_dir}/{os.listdir(st.session_state.save_dir)[0]}')
-    return transcript.text
+def remove_openapi_key():
+    if 'openai_api_key' in st.session_state:
+        del st.session_state['openai_api_key']
 
 
 @st.cache_data(show_spinner="Transcribing the video")
@@ -126,8 +107,57 @@ def transcribe_with_whisper(youtube_video_id):
         OpenAIWhisperParser()
     )
     docs = loader.load()
-    st.write(f'docs num = {len(docs)}')
     return docs[0].page_content
+
+
+def show_transcript():
+    if show_extracted_text:
+        with st.expander('Video transcript'):
+            st.write(vid_text)
+
+
+@st.cache_data
+def load_transcript():
+    with open('transcript.txt') as transcript_file:
+        return transcript_file.read()
+
+
+@st.cache_data
+def load_transcript():
+    with open('transcript.txt') as transcript_file:
+        return transcript_file.read()
+
+
+@st.cache_data
+def load_routine(short_version: bool):
+    filename = 'short_routine.md' if short_version else 'routine.md'
+    with open(filename) as f:
+        return f.read()
+
+
+def export_to_pdf():
+    exported_pdf = tempfile.NamedTemporaryFile()
+    md2pdf(pdf_file_path=exported_pdf.name,
+           md_content=generated_routine)
+    postfix = 'short' if st.session_state.short_version else ''
+    full_pdf_name = f'{vid_name} {postfix}.pdf'
+    with open(Path(exported_pdf.name), 'rb') as pdf_file:
+        export_pdf_button = left_col.download_button('Export to PDF', pdf_file,
+                                                       file_name=full_pdf_name)
+    if export_pdf_button:
+        left_col.write(f'Downloaded {full_pdf_name}')
+        st.stop()
+
+
+def manage_openai_api_key():
+    if openai_api_key := st.text_input(label='OpenAI API key', type='password'):
+        if openai_api_key.startswith('sk-'):
+            st.session_state.openai_api_key = openai_api_key
+        elif not openai_api_key.startswith('sk-'):
+            st.write("This doesn't look like a valid openai API key")
+            remove_openapi_key()
+    else:
+        remove_openapi_key()
 
 
 st.set_page_config(
@@ -138,19 +168,28 @@ st.set_page_config(
 )
 
 with st.sidebar:
+    manage_openai_api_key()
     with open('app_description.md') as descr:
         st.write(descr.read())
     st.subheader('**Demo**')
     st.video('https://www.youtube.com/watch?v=rj76EDbaOX4')
 
+# with st.columns(spec=[0.4, 0.6], gap='large')[0]:
+
 with st.container():
     left_col, right_col = st.columns(spec=[0.4, 0.6], gap='large')
+    no_api_key = 'openai_api_key' not in st.session_state
 
     with left_col:
         with st.form('options'):
+            st.subheader('Enter your follow-along video youtube link')
+            label_visibility = 'visible' if no_api_key else 'collapsed'
             youtube_link = st.text_input(value='https://www.youtube.com/watch?v=1a7URy4pLfw',
-                                         label='Enter you follow-along video youtube link',
-                                         help='Any valid YT URL should work')
+                                         label="Without entering the OpenAI API key, it is only possible to view the "
+                                               "pre-loaded output",
+                                         help='Any valid YT URL should work',
+                                         disabled=no_api_key,
+                                         label_visibility=label_visibility)
 
             if check_video_url():
                 st.video(youtube_link)
@@ -169,29 +208,26 @@ with st.container():
 
     with right_col:
         if generate_button:
-            vid_name = get_video_name()
-            st.session_state.save_dir = f'vids/{get_hashed_name(vid_name)}'
-            try:
-                youtube_video_id = extract_youtube_video_id()
-                vid_text = transcribe_with_assembly(youtube_video_id)
-                # vid_text = transcribe_with_whisper(youtube_video_id)
-                if show_extracted_text:
-                    with st.expander('Video transcript'):
-                        st.write(vid_text)
+            if no_api_key:
+                vid_name = '5 Minute Morning Mobility V2'
+                vid_text = load_transcript()
+                show_transcript()
+                generated_routine = load_routine(st.session_state.short_version)
+            else:
+                vid_name = get_video_name()
+                st.session_state.save_dir = f'vids/{get_hashed_name(vid_name)}'
+                try:
+                    youtube_video_id = extract_youtube_video_id()
+                    vid_text = transcribe_with_whisper(youtube_video_id)
+                    show_transcript()
 
-                generated_routine = generate_routine()
+                    generated_routine = generate_routine()
 
-                exported_pdf = tempfile.NamedTemporaryFile()
-                md2pdf(pdf_file_path=exported_pdf.name,
-                       md_content=generated_routine)
-
-                with open(Path(exported_pdf.name), 'rb') as pdf_file:
-                    download_pdf_button = left_col.download_button('Export to PDF', pdf_file,
-                                                                   file_name=f'{vid_name}.pdf')
-                if download_pdf_button:
-                    left_col.write(f'Downloaded {vid_name}.pdf')
-            except Exception as e:
-                st.error(e)
-            finally:
-                if 'save_dir' in st.session_state:
-                    remove_local_dir(st.session_state.save_dir)
+                except Exception as e:
+                    st.error(e)
+                finally:
+                    if 'save_dir' in st.session_state:
+                        remove_local_dir(st.session_state.save_dir)
+            with st.spinner('Generating routine'):
+                simulate_steam_response(generated_routine)
+            export_to_pdf()

@@ -1,8 +1,6 @@
 streamlit
-openai
-assemblyai
+openai==0.28
 langchain
-clarifai
 yt_dlp
 pydub
 md2pdf
