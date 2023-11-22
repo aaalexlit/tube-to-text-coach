@@ -123,12 +123,6 @@ def load_transcript():
 
 
 @st.cache_data
-def load_transcript():
-    with open('transcript.txt') as transcript_file:
-        return transcript_file.read()
-
-
-@st.cache_data
 def load_routine(short_version: bool):
     filename = 'short_routine.md' if short_version else 'routine.md'
     with open(filename) as f:
@@ -143,7 +137,7 @@ def export_to_pdf():
     full_pdf_name = f'{vid_name} {postfix}.pdf'
     with open(Path(exported_pdf.name), 'rb') as pdf_file:
         export_pdf_button = left_col.download_button('Export to PDF', pdf_file,
-                                                       file_name=full_pdf_name)
+                                                     file_name=full_pdf_name)
     if export_pdf_button:
         left_col.write(f'Downloaded {full_pdf_name}')
         st.stop()
